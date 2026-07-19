@@ -1,0 +1,25 @@
+name: seal-xplat
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'      # test files are gated `go1.24`; >=1.23 avoids macOS LC_UUID abort
+      - name: Test
+        env:
+          # internal/http3 helpers (unhex/runSynctestSubtest) live in files gated
+          # `go1.24 && goexperiment.synctest`; the go1.24-only qpack tests use them,
+          # so the package only compiles with the synctest experiment enabled.
+          GOEXPERIMENT: synctest
+        run: go test ./...
